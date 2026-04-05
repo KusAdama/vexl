@@ -32,6 +32,7 @@ import GoldenAvatarAnimation, {
 import InsideScreen from '../InsideRouter'
 import JoinClubFlow from '../JoinClubFlow'
 import LoginFlow from '../LoginFlow'
+import MoreSettingsScreen from '../MoreSettingsScreen'
 import MyDonationsScreen from '../MyDonationsScreen'
 import NotificationSettingsScreen from '../NotificationSettingsScreen'
 import OfferDetailScreen from '../OfferDetailScreen'
@@ -151,6 +152,7 @@ function RootNavigation(): React.ReactElement {
           name="NotificationSettings"
           component={NotificationSettingsScreen}
         />
+        <Stack.Screen name="MoreSettings" component={MoreSettingsScreen} />
         <Stack.Screen name="TermsAndConditions" component={TosScreen} />
         <Stack.Screen name="Faqs" component={FaqsScreen} />
         <Stack.Screen name="DebugScreen" component={DebugScreen} />

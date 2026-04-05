@@ -30,13 +30,9 @@ import {
   changeLanguageActionAtom,
   showVexlNitroPhoneCooperationBannerActionAtom,
 } from '../actionAtoms'
-import {
-  changeCurrencyDialogVisibleAtom,
-  toggleScreenshotsDisabledActionAtom,
-} from '../atoms'
+import {changeCurrencyDialogVisibleAtom} from '../atoms'
 import coinsIconSvg from '../images/coinsIconSvg'
 import contactIconSvg from '../images/contactIconSvg'
-import cpuIconSvg from '../images/cpuIconSvg'
 import customerSupportIconSvg from '../images/customerSupportIconSvg'
 import dataIconSvg from '../images/dataIconSvg'
 import donationsSvg from '../images/donationsSvg'
@@ -44,18 +40,16 @@ import eventsAndClubsSvg from '../images/eventsAndClubsSvg'
 import faceIdIconSvg from '../images/faceIdIconSvg'
 import glassesSvg from '../images/glassesSvg'
 import imageIconSvg from '../images/imageIconSvg'
-import notificationsIconSvg from '../images/notificationsIconSvg'
+import moreSettingsIconSvg from '../images/moreSettingsIconSvg'
 import popularSvg from '../images/popularSvg'
 import questionIconSvg from '../images/questionIconSvg'
 import termsIconSvg from '../images/termsIconSvg'
 import trashIconSvg from '../images/trashIconSvg'
 import webIconSvg from '../images/webIconSvg'
 import xSvg from '../images/xIconSvg'
-import AllowScreenshots from './AllowScreenshots'
 import ItemText from './ButtonSectionItemText'
 import ContactsImportedTitle from './ContactsImportedTitle'
 import SelectedCurrencyTitle from './SelectedCurrencyTitle'
-import SendReadReceipts from './SendReadReceipts'
 
 interface ItemProps {
   text: string | React.ReactElement
@@ -120,9 +114,6 @@ function ButtonsSection(): React.ReactElement {
   )
   const setReportIssueDialogVisible = useSetAtom(reportIssueDialogAtom)
   const setDefaultCurrency = useSetAtom(defaultCurrencyAtom)
-  const toggleScreenshotsDisabled = useSetAtom(
-    toggleScreenshotsDisabledActionAtom
-  )
   const changeLanguage = useSetAtom(changeLanguageActionAtom)
   const showVexlNitroPhoneCooperationBanner = useSetAtom(
     showVexlNitroPhoneCooperationBannerActionAtom
@@ -203,26 +194,12 @@ function ButtonsSection(): React.ReactElement {
             children: <ContactsImportedTitle />,
           },
           {
-            testID: '@buttonsSection/allowScreenshotsButton',
-            text: t('settings.items.allowScreenshots'),
-            icon: imageIconSvg,
-            onPress: toggleScreenshotsDisabled,
-            children: <AllowScreenshots />,
-          },
-          {
-            testID: '@buttonsSection/sendReadReceiptsButton',
-            text: t('settings.items.sendReadReceipts'),
-            icon: notificationsIconSvg,
-            onPress: () => {},
-            children: <SendReadReceipts />,
-          },
-          {
-            testID: '@buttonsSection/notificationPreferencesButton',
-            text: t('notifications.preferences.screenTitle'),
-            icon: notificationsIconSvg,
+            testID: '@buttonsSection/moreSettingsButton',
+            text: t('settings.items.moreSettings'),
+            icon: moreSettingsIconSvg,
             navigatesFurther: true,
             onPress: () => {
-              navigation.navigate('NotificationSettings')
+              navigation.navigate('MoreSettings')
             },
           },
           {
@@ -290,15 +267,6 @@ function ButtonsSection(): React.ReactElement {
             navigatesFurther: true,
             onPress: () => {
               Effect.runFork(setReportIssueDialogVisible())
-            },
-          },
-          {
-            testID: '@buttonsSection/inAppLogsButton',
-            text: t('settings.items.inAppLogs'),
-            icon: cpuIconSvg,
-            navigatesFurther: true,
-            onPress: () => {
-              navigation.navigate('AppLogs')
             },
           },
         ].filter(notEmpty),
@@ -385,7 +353,6 @@ function ButtonsSection(): React.ReactElement {
       setReportIssueDialogVisible,
       showVexlNitroPhoneCooperationBanner,
       t,
-      toggleScreenshotsDisabled,
     ]
   )
 

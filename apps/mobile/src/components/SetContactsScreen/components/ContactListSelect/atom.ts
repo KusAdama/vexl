@@ -8,8 +8,12 @@ import {
 import {atom, type Atom, type SetStateAction, type WritableAtom} from 'jotai'
 import {splitAtom} from 'jotai/utils'
 import {matchSorter, rankings} from 'match-sorter'
+import {apiAtom} from '../../../../api'
+import {syncConnectionsActionAtom} from '../../../../state/connections/atom/connectionStateAtom'
+import {updateAndReencryptAllOffersConnectionsActionAtom} from '../../../../state/connections/atom/offerToConnectionsAtom'
 import {addContactToPhoneWithUIFeedbackActionAtom} from '../../../../state/contacts/atom/addContactToPhoneWithUIFeedbackAtom'
 import {storedContactsAtom} from '../../../../state/contacts/atom/contactsStore'
+import importContactsFromVcfActionAtom from '../../../../state/contacts/atom/importContactsFromVcfActionAtom'
 import {submitContactsActionAtom} from '../../../../state/contacts/atom/submitContactsActionAtom'
 import {
   StoredContactWithComputedValues,
@@ -21,13 +25,17 @@ import {
 } from '../../../../state/contacts/utils'
 import getValueFromSetStateActionOfAtom from '../../../../utils/atomUtils/getValueFromSetStateActionOfAtom'
 import deduplicate, {deduplicateBy} from '../../../../utils/deduplicate'
+import {exportContactsToVcf} from '../../../../utils/exportContactsToVcf'
 import {translationAtom} from '../../../../utils/localization/I18nProvider'
+import notEmpty from '../../../../utils/notEmpty'
+import {preferencesAtom} from '../../../../utils/preferences'
 import toE164PhoneNumberWithDefaultCountryCode from '../../../../utils/toE164PhoneNumberWithDefaultCountryCode'
 import {askAreYouSureActionAtom} from '../../../AreYouSureDialog'
 import {showErrorAlert} from '../../../ErrorAlert'
-import {toastNotificationAtom} from '../../../ToastNotification/atom'
 import checkIconSvg from '../../../images/checkIconSvg'
 import userSvg from '../../../images/userSvg'
+import {loadingOverlayDisplayedAtom} from '../../../LoadingOverlayProvider'
+import {toastNotificationAtom} from '../../../ToastNotification/atom'
 
 export const ContactsSelectScope = createScope<{
   normalizedContacts: StoredContactWithComputedValues[]
@@ -254,6 +262,56 @@ export const contactSelectMolecule = molecule((_, getScope) => {
     }
   )
 
+  const exportSelectedContactsToVcfActionAtom = atom(
+    null,
+    (get, set): Effect.Effect<boolean> => {
+      const {t} = get(translationAtom)
+      const selectedNumbers = get(selectedNumbersAtom)
+      const contactsToDisplay = get(_contactsToDisplayAtom)
+
+      return Effect.gen(function* (_) {
+        if (selectedNumbers.size === 0) {
+          set(toastNotificationAtom, {
+            visible: true,
+            text: t('contacts.noContactsSelected'),
+            icon: userSvg,
+            hideAfterMillis: 3000,
+          })
+          return false
+        }
+
+        const selectedContacts = contactsToDisplay.filter((contact) =>
+          selectedNumbers.has(contact.computedValues.normalizedNumber)
+        )
+
+        yield* _(
+          exportContactsToVcf(selectedContacts).pipe(
+            Effect.tap(() =>
+              Effect.sync(() => {
+                set(toastNotificationAtom, {
+                  visible: true,
+                  text: t('contacts.exportSuccess'),
+                  icon: checkIconSvg,
+                  hideAfterMillis: 3000,
+                })
+              })
+            ),
+            Effect.catchAll((error) =>
+              Effect.sync(() => {
+                showErrorAlert({
+                  title: t('contacts.exportError'),
+                  error,
+                })
+              })
+            )
+          )
+        )
+
+        return true
+      })
+    }
+  )
+
   const searchTextAsCustomContactAtom = atom((get) => {
     const searchText = get(searchTextAtom)
     const number = toE164PhoneNumberWithDefaultCountryCode(searchText)
@@ -342,24 +400,28 @@ export const contactSelectMolecule = molecule((_, getScope) => {
         const contactsPermissionsGranted = yield* _(
           areContactsPermissionsGranted()
         )
+        const preferences = get(preferencesAtom)
 
-        const addToPhoneSuccess = contactsPermissionsGranted
-          ? yield* _(
-              set(addContactToPhoneWithUIFeedbackActionAtom, {
-                customName,
-                number: contact.computedValues.normalizedNumber,
-              }),
-              Effect.catchTag('UserDeclinedError', () => Effect.succeed(false)),
-              Effect.catchTag('ErrorAddingContactToPhoneContacts', (e) => {
-                showErrorAlert({
-                  title: t('contacts.errorAddingContactToYourPhoneContacts'),
-                  error: e,
+        const addToPhoneSuccess =
+          contactsPermissionsGranted && !preferences.skipPhoneContactStorage
+            ? yield* _(
+                set(addContactToPhoneWithUIFeedbackActionAtom, {
+                  customName,
+                  number: contact.computedValues.normalizedNumber,
+                }),
+                Effect.catchTag('UserDeclinedError', () =>
+                  Effect.succeed(false)
+                ),
+                Effect.catchTag('ErrorAddingContactToPhoneContacts', (e) => {
+                  showErrorAlert({
+                    title: t('contacts.errorAddingContactToYourPhoneContacts'),
+                    error: e,
+                  })
+
+                  return Effect.succeed(false)
                 })
-
-                return Effect.succeed(false)
-              })
-            )
-          : false
+              )
+            : false
 
         const submitContactsSuccess = yield* _(
           set(submitContactsActionAtom, {
@@ -439,7 +501,9 @@ export const contactSelectMolecule = molecule((_, getScope) => {
         const updatedContacts = pipe(
           contacts,
           Array.findFirstIndex(
-            (one) => one.info.rawNumber === contact.info.rawNumber
+            (one) =>
+              one.info.rawNumber === contact.info.rawNumber &&
+              one.flags.importedManually === contact.flags.importedManually
           ),
           Option.map((index) =>
             pipe(
@@ -475,6 +539,112 @@ export const contactSelectMolecule = molecule((_, getScope) => {
     }
   )
 
+  const deleteContactActionAtom = atom(
+    null,
+    (get, set, {contact}: {contact: StoredContactWithComputedValues}) => {
+      return Effect.gen(function* (_) {
+        const {t} = get(translationAtom)
+
+        yield* _(
+          set(askAreYouSureActionAtom, {
+            variant: 'danger',
+            steps: [
+              {
+                type: 'StepWithText',
+                title: t('contacts.deleteContact.areYouSureTitle'),
+                description: t('contacts.deleteContact.areYouSureText'),
+                negativeButtonText: t('common.cancel'),
+                positiveButtonText: t('common.yesDelete'),
+              },
+            ],
+          })
+        )
+
+        set(loadingOverlayDisplayedAtom, true)
+
+        const wasImported = contact.flags.imported
+
+        const updatedContacts = pipe(
+          get(storedContactsAtom),
+          Array.filter(
+            (one) =>
+              !Option.isSome(one.computedValues) ||
+              !(
+                one.computedValues.value.normalizedNumber ===
+                  contact.computedValues.normalizedNumber &&
+                one.flags.importedManually === contact.flags.importedManually
+              )
+          )
+        )
+
+        set(storedContactsAtom, updatedContacts)
+
+        if (wasImported) {
+          const remainingHashes = pipe(
+            updatedContacts,
+            Array.filter((one) => one.flags.imported),
+            Array.map((one) =>
+              Option.isSome(one.computedValues)
+                ? one.computedValues.value.hash
+                : undefined
+            ),
+            Array.filter(notEmpty)
+          )
+
+          const contactApi = get(apiAtom).contact
+
+          yield* _(
+            contactApi.importContacts({
+              contacts: remainingHashes,
+              replace: true,
+            })
+          )
+
+          yield* _(set(syncConnectionsActionAtom))
+          yield* _(
+            set(updateAndReencryptAllOffersConnectionsActionAtom, {
+              isInBackground: false,
+            })
+          )
+        }
+
+        set(loadingOverlayDisplayedAtom, false)
+
+        reloadContacts()
+      }).pipe(
+        Effect.catchAll((error) =>
+          Effect.sync(() => {
+            if (error._tag === 'UserDeclinedError') return
+            const {t} = get(translationAtom)
+            set(loadingOverlayDisplayedAtom, false)
+            showErrorAlert({
+              title: t('common.somethingWentWrong'),
+              error,
+            })
+          })
+        ),
+        Effect.ignore
+      )
+    }
+  )
+
+  const importContactsFromVcfAtom = atom(
+    null,
+    (get, set): Effect.Effect<boolean> => {
+      return Effect.gen(function* (_) {
+        const result = yield* _(
+          set(importContactsFromVcfActionAtom, {
+            onComplete: () => {
+              reloadContacts()
+            },
+          })
+        )
+
+        return result.imported > 0 || result.skipped > 0
+      })
+    }
+  )
+
   return {
     selectAllAtom,
     searchTextAtom,
@@ -486,6 +656,8 @@ export const contactSelectMolecule = molecule((_, getScope) => {
     areThereAnyContactsToDisplayForSelectedTabAtom,
     selectedNumbersAtom,
     submitAllSelectedContactsActionAtom,
+    exportSelectedContactsToVcfActionAtom,
+    importContactsFromVcfAtom,
     normalizedContacts,
     nonSubmittedContactsToDisplayAtomsAtom,
     submittedContactsToDisplayAtomsAtom,
@@ -497,6 +669,7 @@ export const contactSelectMolecule = molecule((_, getScope) => {
     allContactsToDisplayCountAtom,
     displayContactsCountAtom,
     editContactActionAtom,
+    deleteContactActionAtom,
     contactsAccessPrivilegesAtom,
     checkContactsAccessPrivilegesActionAtom,
     displayInfoAboutContactsAccessPrivilegesAtom,

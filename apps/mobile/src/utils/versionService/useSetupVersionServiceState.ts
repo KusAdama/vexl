@@ -3,7 +3,7 @@ import {useAtomValue, useSetAtom} from 'jotai'
 import {useCallback} from 'react'
 import {apiAtom} from '../../api'
 import reportError from '../reportError'
-import {useAppState} from '../useAppState'
+import {getSkipNextResume, useAppState} from '../useAppState'
 import {versionServiceAtom} from './atoms'
 
 export default function useSetupVersionServiceState(): void {
@@ -13,6 +13,7 @@ export default function useSetupVersionServiceState(): void {
     useCallback(
       (state) => {
         if (state !== 'active') return
+        if (getSkipNextResume()) return
         console.log('Fetching version service info')
         void api.user.getVersionServiceInfo().pipe(
           Effect.andThen((info) => {

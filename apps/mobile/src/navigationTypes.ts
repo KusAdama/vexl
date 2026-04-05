@@ -87,6 +87,8 @@ export type RootStackParamsList = {
 
   NotificationSettings: undefined
 
+  MoreSettings: undefined
+
   AppLogs: undefined
 
   DebugScreen: undefined

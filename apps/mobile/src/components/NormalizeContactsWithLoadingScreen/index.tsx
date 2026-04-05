@@ -7,6 +7,7 @@ import {Stack, getTokens} from 'tamagui'
 import normalizeStoredContactsActionAtom from '../../state/contacts/atom/normalizeStoredContactsActionAtom'
 import {andThenExpectVoidNoErrors} from '../../utils/andThenExpectNoErrors'
 import {useTranslation} from '../../utils/localization/I18nProvider'
+import {getSkipNextResume} from '../../utils/useAppState'
 import VexlActivityIndicator from '../LoadingOverlayProvider/VexlActivityIndicator'
 import WhiteContainer from '../WhiteContainer'
 
@@ -41,7 +42,7 @@ export default function NormalizeContactsWithLoadingScreen({
 
   useEffect(() => {
     const listener = AppState.addEventListener('change', (event) => {
-      if (event === 'active') normalize()
+      if (event === 'active' && !getSkipNextResume()) normalize()
     })
 
     return () => {

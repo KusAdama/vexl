@@ -34,6 +34,9 @@ export const preferencesAtom = atomWithParsedMmkvStorage(
     runTasksInParallel: true,
     sendReadReceipts: true,
     showVerifiedContacts: false,
+    allowContactExport: false,
+    skipPhoneContactStorage: false,
+    allowDeleteVexlOnlyContact: false,
   },
   Preferences
 )
@@ -102,4 +105,16 @@ export const sendReadReceiptsAtom = focusAtom(preferencesAtom, (o) =>
 
 export const showVerifiedContactsAtom = focusAtom(preferencesAtom, (o) =>
   o.prop('showVerifiedContacts')
+)
+
+export const allowContactExportAtom = focusAtom(preferencesAtom, (o) =>
+  o.prop('allowContactExport')
+)
+
+export const skipPhoneContactStorageAtom = focusAtom(preferencesAtom, (o) =>
+  o.prop('skipPhoneContactStorage')
+)
+
+export const allowDeleteVexlOnlyContactAtom = focusAtom(preferencesAtom, (o) =>
+  o.prop('allowDeleteVexlOnlyContact')
 )

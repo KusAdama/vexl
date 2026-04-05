@@ -9,7 +9,7 @@ function ToastNotification(): React.ReactElement {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      setState({...state, visible: false})
+      setState({visible: false})
     }, state?.hideAfterMillis ?? 1000)
 
     return () => {

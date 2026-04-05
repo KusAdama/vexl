@@ -13,6 +13,7 @@ import {
   getActiveRouteNameOutsideOfReact,
   safeNavigateBackOutsideReact,
 } from '../../../utils/navigation'
+import {preferencesAtom} from '../../../utils/preferences'
 import {toCommonErrorMessage} from '../../../utils/useCommonErrorMessages'
 import {
   type ContactComputedValues,
@@ -209,24 +210,26 @@ const createContactWithUiFeedbackActionAtom = atom(
       const contactsPermissionsGranted = yield* _(
         areContactsPermissionsGranted()
       )
+      const preferences = get(preferencesAtom)
 
-      const addContactToPhoneSuccess = contactsPermissionsGranted
-        ? yield* _(
-            set(addContactToPhoneWithUIFeedbackActionAtom, {
-              customName,
-              number: importedContact.computedValues.normalizedNumber,
-            }),
-            Effect.catchTag('UserDeclinedError', () => Effect.succeed(false)),
-            Effect.catchTag('ErrorAddingContactToPhoneContacts', (e) => {
-              showErrorAlert({
-                title: t('contacts.errorAddingContactToYourPhoneContacts'),
-                error: e,
+      const addContactToPhoneSuccess =
+        contactsPermissionsGranted && !preferences.skipPhoneContactStorage
+          ? yield* _(
+              set(addContactToPhoneWithUIFeedbackActionAtom, {
+                customName,
+                number: importedContact.computedValues.normalizedNumber,
+              }),
+              Effect.catchTag('UserDeclinedError', () => Effect.succeed(false)),
+              Effect.catchTag('ErrorAddingContactToPhoneContacts', (e) => {
+                showErrorAlert({
+                  title: t('contacts.errorAddingContactToYourPhoneContacts'),
+                  error: e,
+                })
+
+                return Effect.succeed(false)
               })
-
-              return Effect.succeed(false)
-            })
-          )
-        : false
+            )
+          : false
 
       yield* _(
         set(askAreYouSureActionAtom, {

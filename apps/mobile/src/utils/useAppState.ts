@@ -1,6 +1,20 @@
 import {useEffect, useState} from 'react'
 import {AppState, type AppStateStatus} from 'react-native'
 
+let skipNextResume = false
+
+export const setSkipNextResume = (skip?: boolean): void => {
+  skipNextResume = skip !== false
+}
+
+export const getSkipNextResume = (): boolean => {
+  if (skipNextResume) {
+    skipNextResume = false
+    return true
+  }
+  return false
+}
+
 export function useAppState(
   callback:
     | ((state: AppStateStatus) => () => void)

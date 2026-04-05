@@ -2,7 +2,7 @@ import {Array, Effect, HashSet, Option, pipe} from 'effect/index'
 import {useAtomValue, useStore} from 'jotai'
 import {useCallback, useEffect, useRef} from 'react'
 import {userLoggedInAtom} from '../../state/session'
-import {useAppState} from '../useAppState'
+import {getSkipNextResume, useAppState} from '../useAppState'
 import {executeTasksWithDependencies, taskRegistryAtom} from './index'
 
 // tasks
@@ -69,6 +69,13 @@ export const useInAppLoadingTasks = (): void => {
     useCallback(
       (state) => {
         if (state !== 'active') return
+        if (getSkipNextResume()) {
+          console.log(
+            'InAppLoadingTasks',
+            '⏭️ Skipping resume tasks (contact export/import)'
+          )
+          return
+        }
         const taskRegistry = store.get(taskRegistryAtom)
         const resumeTasks = pipe(
           Array.fromIterable(taskRegistry),

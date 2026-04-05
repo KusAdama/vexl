@@ -12,7 +12,6 @@ import {
   userDataRealOrAnonymizedAtom,
   userPhoneNumberAtom,
 } from '../../../../state/session/userDataAtoms'
-import {screenshotsDisabledAtom} from '../../../../state/showYouDidNotAllowScreenshotsActionAtom'
 import getValueFromSetStateActionOfAtom from '../../../../utils/atomUtils/getValueFromSetStateActionOfAtom'
 import {createImportContactLink} from '../../../../utils/deepLinks/createLinks'
 import {version, versionCode} from '../../../../utils/environment'
@@ -39,10 +38,6 @@ export function createIsLanguageSelectedAtom(
     }
   )
 }
-
-export const toggleScreenshotsDisabledActionAtom = atom(null, (get, set) => {
-  set(screenshotsDisabledAtom, !get(screenshotsDisabledAtom))
-})
 
 export const encodedUserDetailsUriAtom = atom<string>((get) => {
   const userData = get(userDataRealOrAnonymizedAtom)

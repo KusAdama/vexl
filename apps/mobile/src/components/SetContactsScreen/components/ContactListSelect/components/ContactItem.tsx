@@ -5,11 +5,13 @@ import React from 'react'
 import {Stack, Text, XStack, getTokens} from 'tamagui'
 import {type StoredContactWithComputedValues} from '../../../../../state/contacts/domain'
 import {getInternationalPhoneNumber} from '../../../../../utils/getInternationalPhoneNumber'
+import {allowDeleteVexlOnlyContactAtom} from '../../../../../utils/preferences'
 import ContactPictureImage from '../../../../ContactPictureImage'
 import IconButton from '../../../../IconButton'
 import SvgImage from '../../../../Image'
 import editIconSvg from '../../../../images/editIconSvg'
 import picturePlaceholderSvg from '../../../../images/picturePlaceholderSvg'
+import trashIconSvg from '../../../../InsideRouter/components/SettingsScreen/images/trashIconSvg'
 import {contactSelectMolecule} from '../atom'
 import IsNewIndicator from './IsNewIndicator'
 import IsSelectedCheckbox from './IsSelectedCheckbox'
@@ -19,9 +21,15 @@ interface Props {
 }
 
 function ContactItem({contactAtom}: Props): React.ReactElement {
-  const {editContactActionAtom} = useMolecule(contactSelectMolecule)
+  const {editContactActionAtom, deleteContactActionAtom} = useMolecule(
+    contactSelectMolecule
+  )
   const contact = useAtomValue(contactAtom)
   const editContact = useSetAtom(editContactActionAtom)
+  const deleteContact = useSetAtom(deleteContactActionAtom)
+  const allowDeleteVexlOnlyContact = useAtomValue(
+    allowDeleteVexlOnlyContactAtom
+  )
   const {
     info: {nonUniqueContactId, name},
     computedValues: {normalizedNumber},
@@ -62,6 +70,18 @@ function ContactItem({contactAtom}: Props): React.ReactElement {
         </Text>
       </Stack>
       <XStack gap="$2">
+        {contact.flags.importedManually && allowDeleteVexlOnlyContact ? (
+          <IconButton
+            testID="@contactItem/deleteButton"
+            variant="primary"
+            height={32}
+            width={32}
+            icon={trashIconSvg}
+            onPress={() => {
+              Effect.runFork(deleteContact({contact}))
+            }}
+          />
+        ) : null}
         <IconButton
           variant="primary"
           height={32}

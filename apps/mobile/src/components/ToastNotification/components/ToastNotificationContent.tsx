@@ -137,7 +137,7 @@ function ToastNotificationContent({
           {!!showCloseButton && (
             <TouchableOpacity
               onPress={() => {
-                setToastNotification((prev) => ({...prev, visible: false}))
+                setToastNotification({visible: false})
               }}
             >
               <SvgImage

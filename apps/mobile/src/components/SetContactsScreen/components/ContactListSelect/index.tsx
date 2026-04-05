@@ -15,6 +15,7 @@ import {
 import {type ContactsFilter} from '../../../../state/contacts/domain'
 import {andThenExpectBooleanNoErrors} from '../../../../utils/andThenExpectNoErrors'
 import {useTranslation} from '../../../../utils/localization/I18nProvider'
+import {allowContactExportAtom} from '../../../../utils/preferences'
 import useSafeGoBack from '../../../../utils/useSafeGoBack'
 import Button from '../../../Button'
 import NormalizeContactsWithLoadingScreen from '../../../NormalizeContactsWithLoadingScreen'
@@ -103,21 +104,25 @@ function CustomTabBar({
         }}
       >
         {state.routes.map((route, index) => {
-          // as any to solve ts error, that options does not exist
-          const {options} = descriptors[route.key] as any
+          const descriptor = descriptors[route.key]
+          const options = descriptor?.options ?? {tabBarLabel: route.name}
           const isFocused = state.index === index
+          const label =
+            typeof options.tabBarLabel === 'string'
+              ? options.tabBarLabel
+              : route.name
 
           return (
-            <Stack key={options.tabBarLabel} mr="$2">
+            <Stack key={route.key} mr="$2">
               <Button
-                key={options.tabBarLabel}
+                key={`${route.key}-btn`}
                 testID={`@customTabBar/tab${route.name}`}
                 onPress={() => {
                   navigation.navigate(route.name, route.params)
                 }}
                 variant={isFocused ? 'secondary' : 'blackOnDark'}
                 size="small"
-                text={options.tabBarLabel}
+                text={label}
               />
               <ContactsCountIndicator
                 isFocused={isFocused}
@@ -140,6 +145,8 @@ function ContactsListSelect({
   const goBack = useSafeGoBack()
   const {
     submitAllSelectedContactsActionAtom,
+    exportSelectedContactsToVcfActionAtom,
+    importContactsFromVcfAtom,
     checkContactsAccessPrivilegesActionAtom,
   } = useMolecule(contactSelectMolecule)
 
@@ -149,6 +156,11 @@ function ContactsListSelect({
   const submitAllSelectedContacts = useSetAtom(
     submitAllSelectedContactsActionAtom
   )
+  const exportSelectedContactsToVcf = useSetAtom(
+    exportSelectedContactsToVcfActionAtom
+  )
+  const importContactsFromVcf = useSetAtom(importContactsFromVcfAtom)
+  const allowContactExport = useAtomValue(allowContactExportAtom)
   const checkContactsAccessPrivileges = useSetAtom(
     checkContactsAccessPrivilegesActionAtom
   )
@@ -224,6 +236,26 @@ function ContactsListSelect({
           text={t('common.submit')}
         />
       </Stack>
+      {Boolean(allowContactExport) && (
+        <Stack pt="$2" bc="$black" flexDirection="row" gap="$2">
+          <Button
+            variant="black"
+            onPress={() => {
+              void Effect.runPromise(importContactsFromVcf())
+            }}
+            style={{flex: 1}}
+            text={t('contacts.importFromVcf')}
+          />
+          <Button
+            variant="black"
+            onPress={() => {
+              void Effect.runPromise(exportSelectedContactsToVcf())
+            }}
+            style={{flex: 1}}
+            text={t('contacts.exportToVcf')}
+          />
+        </Stack>
+      )}
     </>
   )
 }

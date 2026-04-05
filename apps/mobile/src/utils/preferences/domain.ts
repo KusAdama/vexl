@@ -77,6 +77,15 @@ export const Preferences = Schema.Struct({
   showVerifiedContacts: Schema.optionalWith(Schema.Boolean, {
     default: () => false,
   }),
+  allowContactExport: Schema.optionalWith(Schema.Boolean, {
+    default: () => false,
+  }),
+  skipPhoneContactStorage: Schema.optionalWith(Schema.Boolean, {
+    default: () => false,
+  }),
+  allowDeleteVexlOnlyContact: Schema.optionalWith(Schema.Boolean, {
+    default: () => false,
+  }),
 })
 
 export type Preferences = typeof Preferences.Type
